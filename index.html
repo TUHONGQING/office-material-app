@@ -1,0 +1,514 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>办公室物料出入库</title>
+<style>
+  :root{
+    --primary:#2563eb;
+    --primary-d:#1d4ed8;
+    --accent:#0d9488;
+    --danger:#dc2626;
+    --bg:#f4f6fb;
+    --card:#ffffff;
+    --line:#e5e8ef;
+    --text:#1f2937;
+    --muted:#8a93a6;
+    --radius:14px;
+    --shadow:0 6px 22px rgba(30,41,59,.08);
+  }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  html,body{margin:0;padding:0}
+  body{
+    font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei",sans-serif;
+    background:var(--bg);color:var(--text);
+    max-width:640px;margin:0 auto;min-height:100vh;position:relative;padding-bottom:24px;
+  }
+  .topbar{background:linear-gradient(135deg,var(--primary),var(--primary-d));color:#fff;padding:18px 16px 20px;position:sticky;top:0;z-index:20;box-shadow:0 4px 14px rgba(37,99,235,.25);}
+  .topbar .row{display:flex;align-items:center;justify-content:space-between}
+  .topbar h1{font-size:19px;margin:0;font-weight:600;letter-spacing:.5px}
+  .gear{background:rgba(255,255,255,.18);border:0;color:#fff;width:38px;height:38px;border-radius:10px;font-size:18px;cursor:pointer;display:flex;align-items:center;justify-content:center;}
+  .gear:active{background:rgba(255,255,255,.32)}
+  .search{margin-top:14px;background:#fff;border-radius:12px;display:flex;align-items:center;padding:0 12px;height:44px;}
+  .search input{border:0;outline:0;flex:1;font-size:15px;background:transparent;color:var(--text)}
+  .search .ico{color:var(--muted);font-size:17px;margin-right:8px}
+  .search .clr{color:var(--muted);cursor:pointer;font-size:16px;padding:4px}
+  .wrap{padding:14px 14px 0}
+  .stat{font-size:12px;color:var(--muted);margin:2px 2px 10px}
+  .list{display:flex;flex-direction:column;gap:10px}
+  .item{background:var(--card);border-radius:var(--radius);padding:14px 16px;box-shadow:var(--shadow);display:flex;align-items:center;justify-content:space-between;cursor:pointer;transition:transform .08s;}
+  .item:active{transform:scale(.985)}
+  .item .name{font-size:16px;font-weight:600}
+  .item .sub{font-size:12.5px;color:var(--muted);margin-top:4px}
+  .item .go{color:var(--primary);font-size:13px;font-weight:600;white-space:nowrap;margin-left:10px}
+  .empty{text-align:center;color:var(--muted);padding:50px 20px;font-size:14px;line-height:1.7}
+  .empty .big{font-size:40px;display:block;margin-bottom:10px}
+  .addBtn{display:inline-flex;align-items:center;gap:6px;margin-top:18px;padding:11px 28px;border:2px dashed var(--primary);background:transparent;color:var(--primary);font-size:15px;font-weight:600;border-radius:22px;cursor:pointer;transition:.15s;}
+  .addBtn:active{background:rgba(37,99,235,.06);border-style:solid}
+  .hint{text-align:center;color:var(--muted);padding:36px 20px;font-size:14px;line-height:1.7;}
+  .hint .big{font-size:38px;display:block;margin-bottom:8px}
+  .mask{position:fixed;inset:0;background:rgba(15,23,42,.45);z-index:50;display:none;align-items:flex-end;justify-content:center}
+  .mask.show{display:flex}
+  .sheet{background:#fff;width:100%;max-width:640px;border-radius:20px 20px 0 0;padding:20px 18px 26px;animation:up .25s ease;max-height:92vh;overflow:auto;}
+  .dialog{background:#fff;width:88%;max-width:400px;border-radius:16px;padding:22px 20px;margin:auto;animation:pop .2s}
+  @keyframes up{from{transform:translateY(100%)}to{transform:translateY(0)}}
+  @keyframes pop{from{transform:scale(.92);opacity:0}to{transform:scale(1);opacity:1}}
+  .sheet h3{margin:0 0 4px;font-size:18px}
+  .sheet .msub{color:var(--muted);font-size:13px;margin-bottom:16px}
+  .field{margin-bottom:16px}
+  .field label{display:block;font-size:13px;color:var(--muted);margin-bottom:7px}
+  .field input{width:100%;height:46px;border:1.5px solid var(--line);border-radius:11px;padding:0 13px;font-size:15px;outline:0}
+  .field input:focus{border-color:var(--primary)}
+  .seg{display:flex;gap:10px}
+  .seg button{flex:1;height:48px;border:1.5px solid var(--line);background:#fff;border-radius:12px;font-size:15px;font-weight:600;color:var(--muted);cursor:pointer;transition:.15s;}
+  .seg button.in.on{background:var(--accent);border-color:var(--accent);color:#fff}
+  .seg button.out.on{background:var(--primary);border-color:var(--primary);color:#fff}
+  .qty{display:flex;align-items:center;gap:12px}
+  .qty button{width:46px;height:46px;border:1.5px solid var(--line);background:#f8fafc;border-radius:11px;font-size:22px;cursor:pointer;color:var(--text)}
+  .qty input{flex:1;text-align:center;font-size:18px;font-weight:600}
+  .btn{width:100%;height:50px;border:0;border-radius:12px;background:var(--primary);color:#fff;font-size:16px;font-weight:600;cursor:pointer;margin-top:6px;}
+  .btn:active{background:var(--primary-d)}
+  .btn.ghost{background:#eef1f7;color:var(--text)}
+  .btn.danger{background:var(--danger)}
+  .btn.sm{height:38px;font-size:13px;width:auto;padding:0 16px;border-radius:9px}
+  .btn.add{background:var(--accent);border:none}
+  .row2{display:flex;gap:10px}
+  .admin{position:fixed;inset:0;background:var(--bg);z-index:60;display:none;flex-direction:column;max-width:640px;margin:0 auto}
+  .admin.show{display:flex}
+  .admin .ahead{background:var(--text);color:#fff;padding:16px;display:flex;align-items:center;justify-content:space-between}
+  .admin .ahead h2{margin:0;font-size:17px}
+  .admin .ahead .x{background:transparent;border:0;color:#fff;font-size:22px;cursor:pointer}
+  .toolbar{padding:12px 14px;display:flex;gap:8px;flex-wrap:wrap;align-items:center;background:#fff;border-bottom:1px solid var(--line)}
+  .toolbar .grow{flex:1;font-size:12.5px;color:var(--muted)}
+  .tablewrap{flex:1;overflow:auto;padding:0 0 20px}
+  table{width:100%;border-collapse:collapse;font-size:13px}
+  th,td{padding:10px 8px;text-align:left;border-bottom:1px solid var(--line);white-space:nowrap}
+  th{background:#eef2f9;color:#475569;font-weight:600;position:sticky;top:0}
+  td .tag{padding:2px 8px;border-radius:6px;font-size:11px;font-weight:600;color:#fff}
+  .tag.in{background:var(--accent)}
+  .tag.out{background:var(--primary)}
+  td .del{color:var(--danger);cursor:pointer;font-size:12px;border:0;background:transparent;font-weight:600}
+  .chk{width:16px;height:16px;accent-color:var(--primary)}
+  .toast{position:fixed;left:50%;bottom:40px;transform:translateX(-50%);background:rgba(15,23,42,.9);color:#fff;padding:11px 20px;border-radius:22px;font-size:14px;z-index:99;opacity:0;transition:.25s;pointer-events:none;white-space:nowrap}
+  .toast.show{opacity:1;bottom:56px}
+  .cfgerr{background:#fff7ed;border:1px solid #fed7aa;color:#9a3412;padding:14px 16px;font-size:13px;line-height:1.7;margin:14px;border-radius:12px;}
+  .cfgerr code{background:#ffedd5;padding:1px 6px;border-radius:4px;font-family:monospace;font-size:12px}
+</style>
+</head>
+<body>
+
+  <div class="topbar">
+    <div class="row">
+      <h1>📦 办公室物料出入库</h1>
+      <button class="gear" onclick="openAdminLogin()" title="管理员入口">⚙</button>
+    </div>
+    <div class="search">
+      <span class="ico">🔍</span>
+      <input id="searchInput" placeholder="搜索物料名称…" oninput="renderMaterials()" autofocus>
+      <span class="clr" onclick="clearSearch()">✕</span>
+    </div>
+  </div>
+
+  <div class="wrap">
+    <div id="cfgErr"></div>
+    <div class="stat" id="stat"></div>
+    <div class="list" id="materialList"></div>
+  </div>
+
+  <!-- 出入库操作面板 -->
+  <div class="mask" id="opMask">
+    <div class="sheet">
+      <h3 id="opTitle">物料操作</h3>
+      <div class="msub" id="opSub"></div>
+      <div class="field">
+        <label>操作类型</label>
+        <div class="seg">
+          <button type="button" class="in" id="btnIn" onclick="setType('入库')">＋ 入库</button>
+          <button type="button" class="out" id="btnOut" onclick="setType('出库')">－ 出库</button>
+        </div>
+      </div>
+      <div class="field">
+        <label>数量</label>
+        <div class="qty">
+          <button type="button" onclick="stepQty(-1)">－</button>
+          <input id="qtyInput" type="number" min="1" value="1" inputmode="numeric">
+          <button type="button" onclick="stepQty(1)">＋</button>
+        </div>
+      </div>
+      <div class="field">
+        <label>操作人姓名（下拉可选历史记录）</label>
+        <input id="nameInput" list="nameHistory" placeholder="输入或选择姓名" autocomplete="off">
+        <datalist id="nameHistory"></datalist>
+      </div>
+      <div class="row2">
+        <button class="btn ghost" onclick="closeMask('opMask')">取消</button>
+        <button class="btn" onclick="submitOp()">确认登记</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 添加新物料 -->
+  <div class="mask" id="addMask">
+    <div class="sheet">
+      <h3>➕ 添加新物料</h3>
+      <div class="msub">搜不到？直接添加到物料库，以后就能搜到了。</div>
+      <div class="field">
+        <label>物料名称 *</label>
+        <input id="addName" placeholder="例如：A4 复印纸">
+      </div>
+      <div class="field">
+        <label>规格（选填）</label>
+        <input id="addSpec" placeholder="例如：70g/500张">
+      </div>
+      <div class="field">
+        <label>单位（选填）</label>
+        <input id="addUnit" placeholder="例如：包、支、个、本">
+      </div>
+      <div class="row2">
+        <button class="btn ghost" onclick="closeMask('addMask')">取消</button>
+        <button class="btn add" onclick="submitAdd()">确认添加</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 管理员登录 -->
+  <div class="mask" id="loginMask" style="align-items:center">
+    <div class="dialog">
+      <h3 style="margin:0 0 14px">🔐 管理员验证</h3>
+      <div class="field">
+        <label>请输入管理员密码</label>
+        <input id="pwdInput" type="password" placeholder="密码" onkeydown="if(event.key==='Enter')doLogin()">
+      </div>
+      <div class="row2">
+        <button class="btn ghost" onclick="closeMask('loginMask')">取消</button>
+        <button class="btn" onclick="doLogin()">进入后台</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 后台管理 -->
+  <div class="admin" id="adminPanel">
+    <div class="ahead">
+      <h2>📊 出入库流水管理</h2>
+      <button class="x" onclick="closeAdmin()">✕</button>
+    </div>
+    <div class="toolbar">
+      <label style="display:flex;align-items:center;gap:6px;font-size:13px">
+        <input type="checkbox" class="chk" id="chkAll" onchange="toggleAll(this.checked)"> 全选
+      </label>
+      <span class="grow" id="adminStat"></span>
+      <button class="btn sm danger" onclick="deleteSelected()">🗑 批量删除</button>
+      <button class="btn sm" style="background:var(--accent)" onclick="exportExcel()">⬇ 一键导出 Excel</button>
+    </div>
+    <div class="tablewrap">
+      <table>
+        <thead>
+          <tr>
+            <th><input type="checkbox" class="chk" id="chkAll2" onchange="toggleAll(this.checked)"></th>
+            <th>物料名称</th><th>规格</th><th>单位</th><th>类型</th><th>数量</th><th>操作人</th><th>操作时间</th><th>操作</th>
+          </tr>
+        </thead>
+        <tbody id="recordBody"></tbody>
+      </table>
+      <div class="empty" id="recordEmpty" style="display:none">暂无出入库记录</div>
+    </div>
+  </div>
+
+  <div class="toast" id="toast"></div>
+
+<script>
+/* =========================================================
+   办公室物料出入库小程序 · Supabase 版（单文件 · 原生 fetch 直连）
+   数据全部存 Supabase，多设备实时共享；姓名历史仍存本地。
+   ========================================================= */
+
+/* ===== ① 填入你的 Supabase 信息（Settings → API） ===== */
+const SUPABASE_URL  = "https://rdaequtyzxixgcpggcft.supabase.co";  // 改成你的项目地址
+const SUPABASE_ANON = "sb_publishable_554IA1KA6fJEc8cyn8DWPQ_cVUoDdtp";  // 改成你的 anon public key
+
+/* ---------- 工具 ---------- */
+const $ = id => document.getElementById(id);
+function toast(msg){ const t=$("toast"); t.textContent=msg; t.classList.add("show"); clearTimeout(t._t); t._t=setTimeout(()=>t.classList.remove("show"),1800); }
+function pad(n){return n<10?"0"+n:""+n;}
+function fmtTime(iso){
+  if(!iso) return "";
+  const d=new Date(iso);
+  return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
+}
+function ymd(){ const d=new Date(); return `${d.getFullYear()}${pad(d.getMonth()+1)}${pad(d.getDate())}`; }
+const K_NAME = "wm_operators"; // 姓名历史（本地）
+const loadN = ()=>{ try{return JSON.parse(localStorage.getItem(K_NAME))||[];}catch(e){return [];} };
+const saveN = v=>localStorage.setItem(K_NAME,JSON.stringify(v));
+
+/* ---------- SHA-256 密码校验 ---------- */
+async function sha256(str){
+  if(window.crypto && crypto.subtle){
+    const buf = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(str));
+    return [...new Uint8Array(buf)].map(b=>b.toString(16).padStart(2,"0")).join("");
+  }
+  return sha256sync(str);
+}
+function sha256sync(ascii){
+  function rr(n,x){return (x>>>n)|(x<<(32-n));}
+  var m=Math,H=[],K=[],h,i,j,s,a,b,c,d,e,f,g,t1,t2,w=[],prime=2,pIdx=0;
+  for(;pIdx<64;prime++){var ip=true;for(var f2=2;f2<=m.sqrt(prime);f2++){if(prime%f2===0){ip=false;break;}}
+    if(ip){if(pIdx<8)H[pIdx]=(m.pow(prime,.5)*4294967296|0)>>>0;K[pIdx]=(m.pow(prime,1/3)*4294967296|0)>>>0;pIdx++;}}
+  var words=[],asciiBitLen=ascii.length*8,result="";
+  for(i=0;i<ascii.length;i++){words[i>>2]|=ascii.charCodeAt(i)<<((3-i%4)*8);}
+  words[asciiBitLen>>5]|=0x80<<(24-asciiBitLen%32);
+  words[((asciiBitLen+64>>9)<<4)+15]=asciiBitLen;
+  for(j=0;j<words.length;){var chunk=words.slice(j,j+=16);
+    for(i=0;i<16;i++)w[i]=chunk[i]|0;
+    for(i=16;i<64;i++){s=w[i-15];var s0=(rr(7,s))^(rr(18,s))^(s>>>3);s=w[i-2];var s1=(rr(17,s))^(rr(19,s))^(s>>>10);
+      w[i]=(w[i-16]+s0+w[i-7]+s1)|0;}
+    a=H[0];b=H[1];c=H[2];d=H[3];e=H[4];f=H[5];g=H[6];h=H[7];
+    for(i=0;i<64;i++){var S1=(rr(6,e))^(rr(11,e))^(rr(25,e)),ch=(e&f)^(~e&g);t1=(h+S1+ch+K[i]+w[i])|0;
+      var S0=(rr(2,a))^(rr(13,a))^(rr(22,a)),maj=(a&b)^(a&c)^(b&c);t2=(S0+maj)|0;
+      h=g;g=f;f=e;e=(d+t1)|0;d=c;c=b;b=a;a=(t1+t2)|0;}
+    H[0]=(H[0]+a)|0;H[1]=(H[1]+b)|0;H[2]=(H[2]+c)|0;H[3]=(H[3]+d)|0;H[4]=(H[4]+e)|0;H[5]=(H[5]+f)|0;H[6]=(H[6]+g)|0;H[7]=(H[7]+h)|0;}
+  for(i=0;i<8;i++)result+=((H[i]>>>0).toString(16)).padStart(8,"0");
+  return result;
+}
+
+let RUNTIME_PWD_HASH = null;
+let MATS = [];   // 物料列表（内存）
+let RECS = [];   // 流水列表（内存）
+
+/* ---------- Supabase REST 直连（无 SDK） ---------- */
+function HEAD(){ return {
+  "apikey": SUPABASE_ANON,
+  "Authorization":"Bearer "+SUPABASE_ANON,
+  "Content-Type":"application/json"
+};}
+async function supaGet(table, query=""){
+  const r = await fetch(`${SUPABASE_URL}/rest/v1/${table}?${query}`, {headers:HEAD()});
+  if(!r.ok) throw new Error(await r.text());
+  return r.json();
+}
+async function supaPost(table, body){
+  const r = await fetch(`${SUPABASE_URL}/rest/v1/${table}`, {
+    method:"POST", headers:{...HEAD(),"Prefer":"return=minimal"}, body:JSON.stringify(body)
+  });
+  if(!r.ok) throw new Error(await r.text());
+}
+async function supaDelete(table, query){
+  const r = await fetch(`${SUPABASE_URL}/rest/v1/${table}?${query}`, {method:"DELETE", headers:HEAD()});
+  if(!r.ok) throw new Error(await r.text());
+}
+
+/* ================= 首页：搜索 + 渲染 ================= */
+function renderMaterials(){
+  const kw = $("searchInput").value.trim().toLowerCase();
+  const box = $("materialList");
+
+  if(!window.__ready){ // 还没加载完
+    $("stat").textContent="加载中…";
+    box.innerHTML=`<div class="empty"><span class="big">⏳</span>正在连接数据库…</div>`;
+    return;
+  }
+  if(MATS.length===0 && !kw){
+    $("stat").textContent="";
+    box.innerHTML=`<div class="hint"><span class="big">📦</span>物料库暂为空<br>在上方搜索，搜不到可点击下方添加
+      <br><br><button class="addBtn" onclick="openAdd()">➕ 添加第一个物料</button></div>`;
+    return;
+  }
+
+  const list = kw ? MATS.filter(m=>m.name.toLowerCase().includes(kw)) : MATS;
+  $("stat").textContent = `共 ${MATS.length} 种物料${kw?` · 匹配 ${list.length} 项`:""}`;
+
+  if(list.length===0){
+    box.innerHTML=`<div class="empty"><span class="big">🔍</span>未找到「${esc(kw)}」相关物料<br><br>
+      <button class="addBtn" onclick="openAddWithKeyword('${esc(kw)}')">➕ 添加「${esc(kw)}」为新物料</button></div>`;
+    return;
+  }
+  box.innerHTML = list.map(m=>`
+    <div class="item" onclick='openOp(${JSON.stringify(m).replace(/'/g,"&#39;")})'>
+      <div>
+        <div class="name">${esc(m.name)}</div>
+        <div class="sub">${m.spec?"规格："+esc(m.spec)+" · ":""}${m.unit?"单位："+esc(m.unit):""}</div>
+      </div>
+      <div class="go">登记 ›</div>
+    </div>`).join("");
+}
+function esc(s){return String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));}
+function clearSearch(){ $("searchInput").value=""; renderMaterials(); }
+
+/* ================= 添加新物料 ================= */
+function openAdd(){ $("addName").value=$("addSpec").value=$("addUnit").value=""; openMask("addMask"); setTimeout(()=>$("addName").focus(),200); }
+function openAddWithKeyword(kw){ openAdd(); $("addName").value=kw; }
+async function submitAdd(){
+  const name=$("addName").value.trim();
+  if(!name){ toast("请填写物料名称"); return; }
+  if(MATS.some(m=>m.name.toLowerCase()===name.toLowerCase())){
+    toast(`「${name}」已存在，可直接搜索`); closeMask("addMask"); $("searchInput").value=name; renderMaterials(); return;
+  }
+  try{
+    await supaPost("materials",{ name, spec:($("addSpec").value.trim()||""), unit:($("addUnit").value.trim()||"") });
+    MATS.push({ name, spec:($("addSpec").value.trim()||""), unit:($("addUnit").value.trim()||"") });
+    closeMask("addMask"); $("searchInput").value=name; renderMaterials();
+    toast(`✅ 已添加「${name}」`);
+  }catch(e){ toast("添加失败："+e.message); }
+}
+
+/* ================= 出入库操作 ================= */
+let curMaterial=null, curType="入库";
+function openOp(m){
+  curMaterial=m; curType="入库";
+  $("opTitle").textContent=m.name;
+  let sub=[]; if(m.spec) sub.push("规格："+m.spec); if(m.unit) sub.push("单位："+m.unit);
+  $("opSub").textContent=sub.join(" · ");
+  setType("入库"); $("qtyInput").value=1; $("nameInput").value="";
+  refreshNameHistory(); openMask("opMask");
+}
+function setType(t){ curType=t; $("btnIn").classList.toggle("on",t==="入库"); $("btnOut").classList.toggle("on",t==="出库"); }
+function stepQty(d){ const el=$("qtyInput"); el.value=Math.max(1,(parseInt(el.value)||1)+d); }
+function refreshNameHistory(){ $("nameHistory").innerHTML=loadN().map(n=>`<option value="${esc(n)}">`).join(""); }
+async function submitOp(){
+  const qty=parseInt($("qtyInput").value); const name=$("nameInput").value.trim();
+  if(!qty||qty<1){ toast("请输入有效数量"); return; }
+  if(!name){ toast("请填写操作人姓名"); return; }
+  try{
+    await supaPost("records",{
+      material_name:curMaterial.name, spec:curMaterial.spec||"", unit:curMaterial.unit||"",
+      type:curType, qty, operator:name
+    });
+    const names=loadN(); if(!names.includes(name)){ names.unshift(name); saveN(names.slice(0,50)); }
+    closeMask("opMask"); toast(`✅ ${curType}登记成功：${curMaterial.name} ×${qty}`);
+  }catch(e){ toast("登记失败："+e.message); }
+}
+
+/* ================= 弹层 ================= */
+function openMask(id){ $(id).classList.add("show"); }
+function closeMask(id){ $(id).classList.remove("show"); }
+
+/* ================= 管理员登录 ================= */
+function openAdminLogin(){ $("pwdInput").value=""; openMask("loginMask"); setTimeout(()=>$("pwdInput").focus(),200); }
+async function doLogin(){
+  const pwd=$("pwdInput").value; if(!pwd){ toast("请输入密码"); return; }
+  if(await sha256(pwd)===RUNTIME_PWD_HASH){ closeMask("loginMask"); openAdmin(); }
+  else{ toast("❌ 密码错误"); $("pwdInput").value=""; }
+}
+
+/* ================= 后台 ================= */
+function openAdmin(){ renderRecords(); $("adminPanel").classList.add("show"); }
+function closeAdmin(){ $("adminPanel").classList.remove("show"); $("chkAll").checked=false; $("chkAll2").checked=false; }
+function renderRecords(){
+  const body=$("recordBody");
+  $("adminStat").textContent=`共 ${RECS.length} 条记录`;
+  $("recordEmpty").style.display=RECS.length? "none":"block";
+  body.innerHTML=RECS.map(r=>`
+    <tr>
+      <td><input type="checkbox" class="chk rowchk" value="${r.id}"></td>
+      <td>${esc(r.material_name)}</td><td>${esc(r.spec)}</td><td>${esc(r.unit)}</td>
+      <td><span class="tag ${r.type==='入库'?'in':'out'}">${r.type}</span></td>
+      <td>${r.qty}</td><td>${esc(r.operator)}</td><td>${fmtTime(r.created_at)}</td>
+      <td><button class="del" onclick="deleteOne('${r.id}')">删除</button></td>
+    </tr>`).join("");
+}
+function toggleAll(checked){ $("chkAll").checked=checked; $("chkAll2").checked=checked; document.querySelectorAll(".rowchk").forEach(c=>c.checked=checked); }
+async function deleteOne(id){
+  if(!confirm("确认删除这条记录？删除后不可恢复。")) return;
+  try{ await supaDelete("records",`id=eq.${encodeURIComponent(id)}`); RECS=RECS.filter(r=>r.id!==id); renderRecords(); toast("已删除 1 条记录"); }
+  catch(e){ toast("删除失败："+e.message); }
+}
+async function deleteSelected(){
+  const ids=[...document.querySelectorAll(".rowchk:checked")].map(c=>c.value);
+  if(!ids.length){ toast("请先勾选要删除的记录"); return; }
+  if(!confirm(`⚠️ 确认删除选中的 ${ids.length} 条记录？此操作不可恢复！`)) return;
+  try{
+    await supaDelete("records",`id=in.(${ids.map(encodeURIComponent).join(",")})`);
+    RECS=RECS.filter(r=>!ids.includes(r.id)); toggleAll(false); renderRecords(); toast(`已删除 ${ids.length} 条记录`);
+  }catch(e){ toast("删除失败："+e.message); }
+}
+
+/* ================= 导出 Excel (.xlsx) ================= */
+function exportExcel(){
+  if(RECS.length===0){ toast("暂无数据可导出"); return; }
+  const headers=["物料名称","规格","单位","类型","数量","操作人","操作时间"];
+  const rows=[headers, ...RECS.map(r=>[r.material_name,r.spec,r.unit,r.type,r.qty,r.operator,fmtTime(r.created_at)])];
+  const blob=makeXlsx(rows);
+  const a=document.createElement("a"); a.href=URL.createObjectURL(blob); a.download=`物料出入库记录_${ymd()}.xlsx`; a.click();
+  setTimeout(()=>URL.revokeObjectURL(a.href),1000);
+  toast("📄 已导出 "+`物料出入库记录_${ymd()}.xlsx`);
+}
+function xmlEsc(s){return String(s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&apos;"}[c]));}
+function colLetter(n){let s="";n++;while(n>0){let m=(n-1)%26;s=String.fromCharCode(65+m)+s;n=(n-m-1)/26;}return s;}
+function makeXlsx(rows){
+  let sd="";
+  rows.forEach((row,ri)=>{ sd+=`<row r="${ri+1}">`;
+    row.forEach((cell,ci)=>{ const ref=colLetter(ci)+(ri+1);
+      if(typeof cell==="number"){ sd+=`<c r="${ref}"><v>${cell}</v></c>`; }
+      else{ sd+=`<c r="${ref}" t="inlineStr"><is><t xml:space="preserve">${xmlEsc(cell)}</t></is></c>`; }
+    }); sd+=`</row>`; });
+  const sheet=`<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"><sheetData>${sd}</sheetData></worksheet>`;
+  const contentTypes=`<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Override PartName="/xl/workbook.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"/><Override PartName="/xl/worksheets/sheet1.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/></Types>`;
+  const rels=`<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="xl/workbook.xml"/></Relationships>`;
+  const wb=`<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<workbook xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"><sheets><sheet name="出入库记录" sheetId="1" r:id="rId1"/></sheets></workbook>`;
+  const wbRels=`<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet1.xml"/></Relationships>`;
+  const enc=new TextEncoder();
+  const files=[
+    {name:"[Content_Types].xml", data:enc.encode(contentTypes)},
+    {name:"_rels/.rels", data:enc.encode(rels)},
+    {name:"xl/workbook.xml", data:enc.encode(wb)},
+    {name:"xl/_rels/workbook.xml.rels", data:enc.encode(wbRels)},
+    {name:"xl/worksheets/sheet1.xml", data:enc.encode(sheet)},
+  ];
+  return new Blob([buildZip(files)],{type:"application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"});
+}
+function crc32(bytes){
+  let table=crc32.t;
+  if(!table){ table=crc32.t=[]; for(let n=0;n<256;n++){let c=n;for(let k=0;k<8;k++)c=c&1?0xEDB88320^(c>>>1):c>>>1;table[n]=c>>>0;} }
+  let crc=0^(-1);
+  for(let i=0;i<bytes.length;i++)crc=(crc>>>8)^table[(crc^bytes[i])&0xFF];
+  return (crc^(-1))>>>0;
+}
+function buildZip(files){
+  const enc=new TextEncoder(); const parts=[]; const central=[]; let offset=0;
+  const push=a=>{parts.push(a);offset+=a.length;};
+  const u16=n=>[n&0xff,(n>>8)&0xff];
+  const u32=n=>[n&0xff,(n>>8)&0xff,(n>>16)&0xff,(n>>24)&0xff];
+  files.forEach(f=>{
+    const nb=enc.encode(f.name), data=f.data, crc=crc32(data), off=offset;
+    push(new Uint8Array([].concat(u32(0x04034b50),u16(20),u16(0),u16(0),u16(0),u16(0),u32(crc),u32(data.length),u32(data.length),u16(nb.length),u16(0))));
+    push(nb); push(data);
+    central.push({h:new Uint8Array([].concat(u32(0x02014b50),u16(20),u16(20),u16(0),u16(0),u16(0),u16(0),u32(crc),u32(data.length),u32(data.length),u16(nb.length),u16(0),u16(0),u16(0),u16(0),u32(0),u32(off))),nb});
+  });
+  const cStart=offset; let cSize=0;
+  central.forEach(c=>{push(c.h);push(c.nb);cSize+=c.h.length+c.nb.length;});
+  push(new Uint8Array([].concat(u32(0x06054b50),u16(0),u16(0),u16(central.length),u16(central.length),u32(cSize),u32(cStart),u16(0))));
+  let total=parts.reduce((a,p)=>a+p.length,0), out=new Uint8Array(total), pos=0;
+  parts.forEach(p=>{out.set(p,pos);pos+=p.length;});
+  return out;
+}
+
+/* ================= 启动 ================= */
+(async function init(){
+  RUNTIME_PWD_HASH = await sha256("admin888");
+  if(SUPABASE_URL.includes("YOUR-PROJECT") || SUPABASE_ANON.includes("YOUR-ANON")){
+    $("cfgErr").innerHTML=`<div class="cfgerr">
+      ⚠️ <b>尚未配置 Supabase</b><br>
+      请用记事本打开本文件，找到第 ① 处，把 <code>SUPABASE_URL</code> 和 <code>SUPABASE_ANON</code><br>
+      改成你的项目信息（Supabase 控制台 → Settings → API）。<br>
+      详细步骤见「部署指南.md」。
+    </div>`;
+    renderMaterials(); return;
+  }
+  try{
+    MATS = await supaGet("materials","select=*&order=created_at.asc");
+    RECS = await supaGet("records","select=*&order=created_at.desc");
+    window.__ready=true;
+    renderMaterials();
+  }catch(e){
+    $("cfgErr").innerHTML=`<div class="cfgerr">❌ 连接 Supabase 失败：${esc(e.message)}<br>请检查 URL / anon key 是否正确，以及表是否已创建。</div>`;
+    renderMaterials();
+  }
+})();
+</script>
+</body>
+</html>
